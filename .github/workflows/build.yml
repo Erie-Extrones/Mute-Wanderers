@@ -1,0 +1,70 @@
+# Builds and tests the mod for every supported Minecraft version on each push and
+# pull request. Also reusable from release.yml (workflow_call), which passes the
+# mod version derived from the release tag.
+#
+# To add or drop a Minecraft target, edit the matrix below. Each entry needs the
+# Fabric API version published for that Minecraft version (https://fabricmc.net/develop).
+
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+    inputs:
+      mod_version:
+        description: 'Mod version to build (overrides mod_version in gradle.properties)'
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  build:
+    name: Minecraft ${{ matrix.minecraft }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '26.3'
+            fabric_api: '0.162.0+26.3'
+          - minecraft: '26.1.2'
+            fabric_api: '0.155.3+26.1.2'
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v7
+
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: setup jdk
+        uses: actions/setup-java@v6
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: build
+        run: >
+          ./gradlew build
+          -Pminecraft_version=${{ matrix.minecraft }}
+          -Pfabric_api_version=${{ matrix.fabric_api }}
+          ${{ inputs.mod_version != '' && format('-Pmod_version={0}', inputs.mod_version) || '' }}
+
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: rankmute-mc${{ matrix.minecraft }}
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: capture test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-mc${{ matrix.minecraft }}
+          path: build/reports/tests/test/
+          if-no-files-found: ignore

@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "rankmute",
+	"version": "${version}",
+	"name": "RankMute",
+	"description": "Client-side chat filter that hides messages from players whose rank prefix matches a configured list. Nothing is sent to the server.",
+	"authors": [
+		"Erie"
+	],
+	"contact": {
+		"sources": "https://github.com/erie-extrones/mute-wanderers",
+		"issues": "https://github.com/erie-extrones/mute-wanderers/issues"
+	},
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.erie.rankmute.RankMuteClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~${minecraft_version}",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

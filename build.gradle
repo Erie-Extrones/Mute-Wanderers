@@ -1,0 +1,88 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+// Jar version is <mod_version>+mc<minecraft_version>, e.g. rankmute-1.0.0+mc26.3.jar,
+// so builds for different Minecraft targets never collide.
+version = "${project.mod_version}+mc${project.minecraft_version}"
+group = project.group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+}
+
+loom {
+	mods {
+		"rankmute" {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API: ClientReceiveMessageEvents and ClientCommandRegistrationCallback.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Plain JUnit for the Minecraft-free matcher tests.
+	testImplementation platform("org.junit:junit-bom:5.13.4")
+	testImplementation "org.junit.jupiter:junit-jupiter"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+processResources {
+	def version = project.version
+	def minecraftVersion = project.minecraft_version
+	inputs.property "version", version
+	inputs.property "minecraft_version", minecraftVersion
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version, "minecraft_version": minecraftVersion
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+test {
+	useJUnitPlatform()
+	testLogging {
+		events "failed"
+		exceptionFormat "full"
+	}
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+	repositories {
+	}
+}
