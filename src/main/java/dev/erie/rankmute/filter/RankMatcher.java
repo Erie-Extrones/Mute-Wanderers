@@ -20,8 +20,11 @@ import java.util.regex.PatternSyntaxException;
  * <p>Invalid patterns never throw; they are skipped and reported through {@link #errors()}.
  */
 public final class RankMatcher {
-	/** Default template: rank name in square brackets at the very start of the line. */
-	public static final String DEFAULT_PREFIX_TEMPLATE = "^\\[%s\\]";
+	/**
+	 * Default template: optional leading icon glyphs or spaces, then the rank name, then a colon,
+	 * e.g. {@code "█ Wanderer : Meigha hello"}. Matches the format of the server this mod was written for.
+	 */
+	public static final String DEFAULT_PREFIX_TEMPLATE = "^[^A-Za-z0-9]*%s\\s*:";
 
 	private final List<CompiledRule> rules;
 	private final List<String> errors;

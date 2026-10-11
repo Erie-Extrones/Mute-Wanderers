@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "prefixTemplate": "^\\[%s\\]",
+  "prefixTemplate": "^[^A-Za-z0-9]*%s\\s*:",
   "showIfMentioned": true,
   "showCounterInActionBar": false,
   "debugLogEvents": false,

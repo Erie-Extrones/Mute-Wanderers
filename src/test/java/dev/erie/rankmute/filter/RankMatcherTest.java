@@ -13,33 +13,65 @@ import org.junit.jupiter.api.Test;
 class RankMatcherTest {
 	private static final String ME = "Erie";
 
+	private static final String BRACKETS = "^\\[%s\\]";
+
+	/** Matcher using the shipped default template ({@code Rank : name msg}, optional leading icon). */
 	private static RankMatcher defaults(String... ranks) {
 		return RankMatcher.compile(RankMatcher.DEFAULT_PREFIX_TEMPLATE, List.of(ranks), List.of(), true);
 	}
 
+	/** Matcher using the bracketed {@code [Rank] name: msg} template. */
+	private static RankMatcher brackets(String... ranks) {
+		return RankMatcher.compile(BRACKETS, List.of(ranks), List.of(), true);
+	}
+
+	@Test
+	void defaultTemplateHidesServerFormat() {
+		MatchResult r = defaults("Wanderer").test("Wanderer : Meigha hello", ME);
+		assertTrue(r.hidden());
+		assertEquals("rank 'Wanderer'", r.matchedRule());
+		assertTrue(defaults("Wanderer").test("Wanderer: Meigha hello", ME).hidden());
+		assertTrue(defaults("IMMORTAL").test("Immortal : ~holyHe hi", ME).hidden());
+	}
+
+	@Test
+	void defaultTemplateSkipsLeadingIconGlyph() {
+		assertTrue(defaults("Wanderer").test("\u2588 Wanderer : Meigha hello", ME).hidden());
+		assertTrue(defaults("Wanderer").test("\uE001\u00a7a Wanderer : Meigha hello", ME).hidden());
+		assertTrue(defaults("Wanderer").test("\u00a7a\u25a0\u00a7r Wanderer : Meigha hello", ME).hidden());
+	}
+
+	@Test
+	void defaultTemplateRequiresRankThenColon() {
+		assertFalse(defaults("Wanderer").test("Meigha : Wanderer hello", ME).hidden());
+		assertFalse(defaults("Wanderer").test("Wanderer Meigha hello", ME).hidden());
+		assertFalse(defaults("Wanderer").test("[Wanderer] Meigha: hello", ME).hidden());
+		assertFalse(defaults("Wanderer").test("Wanderers : Meigha hello", ME).hidden());
+	}
+
 	@Test
 	void hidesRankPrefixAtStartOfLine() {
-		MatchResult r = defaults("Wanderer").test("[Wanderer] Steve: hello", ME);
+		MatchResult r = brackets("Wanderer").test("[Wanderer] Steve: hello", ME);
 		assertTrue(r.hidden());
 		assertEquals("rank 'Wanderer'", r.matchedRule());
 	}
 
 	@Test
 	void showsOtherRanks() {
-		assertFalse(defaults("Wanderer").test("[Knight] Steve: hello", ME).hidden());
-		assertFalse(defaults("Wanderer").test("Steve: hello", ME).hidden());
+		assertFalse(brackets("Wanderer").test("[Knight] Steve: hello", ME).hidden());
+		assertFalse(brackets("Wanderer").test("Steve: hello", ME).hidden());
 	}
 
 	@Test
 	void rankRuleIsCaseInsensitive() {
-		assertTrue(defaults("Wanderer").test("[WANDERER] Steve: hi", ME).hidden());
-		assertTrue(defaults("wanderer").test("[Wanderer] Steve: hi", ME).hidden());
+		assertTrue(brackets("Wanderer").test("[WANDERER] Steve: hi", ME).hidden());
+		assertTrue(brackets("wanderer").test("[Wanderer] Steve: hi", ME).hidden());
 	}
 
 	@Test
 	void rankRuleOnlyMatchesAtStartOfLine() {
-		assertFalse(defaults("Wanderer").test("Steve: I saw [Wanderer] earlier", ME).hidden());
-		assertFalse(defaults("Wanderer").test("<Steve> [Wanderer] hi", ME).hidden());
+		assertFalse(brackets("Wanderer").test("Steve: I saw [Wanderer] earlier", ME).hidden());
+		assertFalse(brackets("Wanderer").test("<Steve> [Wanderer] hi", ME).hidden());
 	}
 
 	@Test
@@ -51,8 +83,8 @@ class RankMatcherTest {
 
 	@Test
 	void rankNameIsRegexQuoted() {
-		assertTrue(defaults("VIP+").test("[VIP+] Steve: hi", ME).hidden());
-		assertFalse(defaults("VIP+").test("[VIPP] Steve: hi", ME).hidden());
+		assertTrue(brackets("VIP+").test("[VIP+] Steve: hi", ME).hidden());
+		assertFalse(brackets("VIP+").test("[VIPP] Steve: hi", ME).hidden());
 	}
 
 	@Test
@@ -64,19 +96,19 @@ class RankMatcherTest {
 
 	@Test
 	void stripsSectionFormattingCodes() {
-		assertTrue(defaults("Wanderer").test("§7[§aWanderer§7] §fSteve§7: §fhello", ME).hidden());
+		assertTrue(brackets("Wanderer").test("§7[§aWanderer§7] §fSteve§7: §fhello", ME).hidden());
 		assertEquals("[Wanderer] hi", FormattingCodes.strip("§7[§aWanderer§7] hi"));
 		assertEquals("abc", FormattingCodes.strip("abc§"));
 	}
 
 	@Test
 	void leadingWhitespaceIsIgnored() {
-		assertTrue(defaults("Wanderer").test("  [Wanderer] Steve: hi", ME).hidden());
+		assertTrue(brackets("Wanderer").test("  [Wanderer] Steve: hi", ME).hidden());
 	}
 
 	@Test
 	void mentionExemptionShowsMessage() {
-		MatchResult r = defaults("Wanderer").test("[Wanderer] Steve: hey Erie come here", ME);
+		MatchResult r = brackets("Wanderer").test("[Wanderer] Steve: hey Erie come here", ME);
 		assertFalse(r.hidden());
 		assertTrue(r.exemptedByMention());
 		assertEquals("rank 'Wanderer'", r.matchedRule());
@@ -84,14 +116,14 @@ class RankMatcherTest {
 
 	@Test
 	void mentionIsCaseInsensitiveAndWholeWord() {
-		assertFalse(defaults("Wanderer").test("[Wanderer] Steve: hey erie", ME).hidden());
-		assertTrue(defaults("Wanderer").test("[Wanderer] Steve: hey Erieanne", ME).hidden());
-		assertFalse(defaults("Wanderer").test("[Wanderer] Steve: @Erie!", ME).hidden());
+		assertFalse(brackets("Wanderer").test("[Wanderer] Steve: hey erie", ME).hidden());
+		assertTrue(brackets("Wanderer").test("[Wanderer] Steve: hey Erieanne", ME).hidden());
+		assertFalse(brackets("Wanderer").test("[Wanderer] Steve: @Erie!", ME).hidden());
 	}
 
 	@Test
 	void mentionExemptionCanBeDisabled() {
-		RankMatcher m = RankMatcher.compile(RankMatcher.DEFAULT_PREFIX_TEMPLATE, List.of("Wanderer"), List.of(), false);
+		RankMatcher m = RankMatcher.compile(BRACKETS, List.of("Wanderer"), List.of(), false);
 		MatchResult r = m.test("[Wanderer] Steve: hey Erie", ME);
 		assertTrue(r.hidden());
 		assertFalse(r.mentioned());
@@ -99,7 +131,7 @@ class RankMatcherTest {
 
 	@Test
 	void mentionWithNullUsernameNeverExempts() {
-		assertTrue(defaults("Wanderer").test("[Wanderer] Steve: hey Erie", null).hidden());
+		assertTrue(brackets("Wanderer").test("[Wanderer] Steve: hey Erie", null).hidden());
 	}
 
 	@Test
@@ -140,12 +172,13 @@ class RankMatcherTest {
 		RankMatcher m = RankMatcher.compile(null, java.util.Arrays.asList("", null, "Wanderer"), java.util.Arrays.asList(null, " "), true);
 		assertEquals(1, m.ruleCount());
 		assertTrue(m.errors().isEmpty());
-		assertTrue(m.test("[Wanderer] Steve: hi", ME).hidden());
+		assertTrue(m.test("Wanderer : Steve hi", ME).hidden());
 	}
 
 	@Test
 	void validators() {
 		assertNull(RankMatcher.validateTemplate(RankMatcher.DEFAULT_PREFIX_TEMPLATE));
+		assertNull(RankMatcher.validateTemplate(BRACKETS));
 		assertNotNull(RankMatcher.validateTemplate("^\\[Wanderer\\]"));
 		assertNotNull(RankMatcher.validateTemplate("^[%s"));
 		assertNotNull(RankMatcher.validateTemplate(""));

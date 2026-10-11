@@ -15,22 +15,22 @@ Server-side nothing changes. The mod is marked `"environment": "client"` and is 
 
 ## Important: match the server's chat format
 
-Rank rules are built from a **prefix template**. The default, `^\[%s\]`, matches lines that start with the rank in square brackets, e.g.
+Rank rules are built from a **prefix template**. The default, `^[^A-Za-z0-9]*%s\s*:`, matches lines that start with the rank name followed by a colon, allowing an icon glyph or spaces in front, e.g.
 
 ```
-[Wanderer] Steve: hello
+Wanderer : Meigha hello
 ```
 
-If your server formats chat differently (`Wanderer | Steve » hello`, `Wanderer Steve: hello`, ...), the default rule will never match and nothing will be hidden. Set a template that fits, where `%s` stands for the rank name:
+If your server formats chat differently (`[Wanderer] Steve: hello`, `Wanderer | Steve » hello`, ...), the default rule will never match and nothing will be hidden. Set a template that fits, where `%s` stands for the rank name:
 
 ```
-/rankmute template ^%s \| 
+/rankmute template ^\[%s\]
 ```
 
 Then verify with the test command, which runs a sample line through the matcher without sending anything:
 
 ```
-/rankmute test Wanderer | Steve » hello
+/rankmute test [Wanderer] Steve: hello
 ```
 
 Tips:
@@ -65,7 +65,7 @@ File: `config/rankmute.json`. Written with defaults if missing; see [`config.exa
 ```json
 {
   "enabled": true,
-  "prefixTemplate": "^\\[%s\\]",
+  "prefixTemplate": "^[^A-Za-z0-9]*%s\\s*:",
   "showIfMentioned": true,
   "showCounterInActionBar": false,
   "debugLogEvents": false,
@@ -77,7 +77,7 @@ File: `config/rankmute.json`. Written with defaults if missing; see [`config.exa
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `enabled` | `true` | Master switch. |
-| `prefixTemplate` | `^\[%s\]` | Regex template for rank rules. `%s` is replaced with the (regex-escaped) rank name. Compiled case-insensitive and anchored to the start of the line. |
+| `prefixTemplate` | `^[^A-Za-z0-9]*%s\s*:` | Regex template for rank rules. `%s` is replaced with the (regex-escaped) rank name. Compiled case-insensitive and anchored to the start of the line. |
 | `showIfMentioned` | `true` | Never hide a message that contains your own username (whole word, case-insensitive), even if a rule matches. |
 | `showCounterInActionBar` | `false` | Briefly show `RankMute: hid N` on the action bar whenever a message is dropped. Handy while setting up. |
 | `debugLogEvents` | `false` | Log each hidden message and whether it arrived as a `chat` (signed player chat) or `game` (system) message. Use this to confirm which event your server's chat goes through. |
@@ -110,7 +110,7 @@ Jars land in `build/libs/` as `rankmute-<version>+mc<minecraft>.jar`. Unit tests
 For in-game testing, run a local server and fake rank-prefixed chat with:
 
 ```
-/tellraw @a "[Wanderer] test: hello"
+/tellraw @a "Wanderer : test hello"
 ```
 
 ## Releasing
